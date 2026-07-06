@@ -1,4 +1,4 @@
-# 🎓 ICEMS - Intelligent College Event Management System
+# 🎓 ICEMS - Integrated College Event Management System
 
 A Flask-based web application developed to simplify college event management through separate dashboards for students, faculty, and administrators.
 
