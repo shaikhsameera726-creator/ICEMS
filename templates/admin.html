@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - ICEMS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .dashboard-card {
+        transition: all 0.3s ease;
+        border: none;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15) !important;
+    }
+    .stat-card {
+        border-radius: 12px;
+        border: none;
+    }
+    .nav-pills .nav-link.active {
+        background-color: #4361ee;
+        color: white;
+    }
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+    .quick-action-card {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="h2 fw-bold text-dark">Admin Dashboard</h1>
+            <p class="text-muted mb-0">Welcome back, <strong>{{ session.username }}</strong> | Full Control Panel</p>
+        </div>
+        <div class="d-flex gap-3">
+            <button onclick="refreshAll()" class="btn btn-outline-primary d-flex align-items-center gap-2">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+            <a href="/logout" class="btn btn-outline-danger d-flex align-items-center gap-2">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card bg-primary text-white dashboard-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="opacity-75 mb-1">Total Students</h6>
+                            <h2 class="mb-0 fw-bold" id="stat_students">0</h2>
+                        </div>
+                        <i class="bi bi-people-fill fs-1 opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card bg-success text-white dashboard-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="opacity-75 mb-1">Total Faculty</h6>
+                            <h2 class="mb-0 fw-bold" id="stat_faculty">0</h2>
+                        </div>
+                        <i class="bi bi-person-workspace fs-1 opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card bg-info text-white dashboard-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="opacity-75 mb-1">Active Events</h6>
+                            <h2 class="mb-0 fw-bold" id="stat_events">0</h2>
+                        </div>
+                        <i class="bi bi-calendar-event fs-1 opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card stat-card bg-danger text-white dashboard-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="opacity-75 mb-1">Total Raised</h6>
+                            <h2 class="mb-0 fw-bold" id="stat_raised">₹0</h2>
+                        </div>
+                        <i class="bi bi-heart-fill fs-1 opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Quick Actions Panel -->
+        <div class="col-lg-4">
+            <div class="card dashboard-card quick-action-card h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+
+                    <!-- Create Faculty -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Create Faculty Account</label>
+                        <input type="text" id="faculty_username" class="form-control mb-2" placeholder="Username (e.g. prof_rajesh)">
+                        <input type="password" id="faculty_password" class="form-control mb-3" placeholder="Password (min 6 chars)">
+                        <button onclick="createFaculty()" class="btn btn-primary w-100">
+                            <i class="bi bi-person-plus"></i> Create Faculty
+                        </button>
+                        <div id="faculty_msg" class="mt-2"></div>
+                    </div>
+
+                    <!-- Create Event -->
+                    <div>
+                        <label class="form-label fw-semibold">Create New Event</label>
+                        <input type="text" id="event_title" class="form-control mb-2" placeholder="Event Title">
+                        <input type="date" id="event_date" class="form-control mb-3">
+                        <button onclick="createEvent()" class="btn btn-success w-100">
+                            <i class="bi bi-plus-circle"></i> Create Event
+                        </button>
+                        <div id="event_msg" class="mt-2"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Management Tabs -->
+        <div class="col-lg-8">
+            <ul class="nav nav-pills mb-4" id="adminTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#events-tab">
+                        <i class="bi bi-calendar-event"></i> Events
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#charity-tab">
+                        <i class="bi bi-heart"></i> Charities
+                    </button>
+                </li>
+                
+            </ul>
+
+            <div class="tab-content">
+
+                <!-- Events Tab -->
+                <div class="tab-pane fade show active" id="events-tab">
+                    <div class="card dashboard-card">
+                        <div class="card-header d-flex justify-content-between">
+                            <h5 class="mb-0">All Events</h5>
+                            <button onclick="loadEvents()" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="events_table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Date</th>
+                                            <th>Organizer</th>
+                                            <th width="120">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charities Tab -->
+                <div class="tab-pane fade" id="charity-tab">
+                    <div class="card dashboard-card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Charity Management</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-8">
+                                    <input type="text" id="charity_name" class="form-control" placeholder="Enter Charity Name">
+                                </div>
+                                <div class="col-md-4">
+                                    <button onclick="createCharity()" class="btn btn-danger w-100">
+                                        <i class="bi bi-plus"></i> Add Charity
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="charity_msg"></div>
+                            <div id="charities_list" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+               
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show message helper
+function showMsg(id, message, type = 'info') {
+    const el = document.getElementById(id);
+    if (el) {
+        el.innerHTML = `<div class="alert alert-${type} py-2 small mb-0">${message}</div>`;
+    }
+}
+
+// Create Faculty
+async function createFaculty() {
+    const username = document.getElementById('faculty_username').value.trim();
+    const password = document.getElementById('faculty_password').value.trim();
+
+    if (!username || !password) {
+        showMsg('faculty_msg', 'Username and password are required', 'danger');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/create-faculty', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showMsg('faculty_msg', 'Faculty account created successfully!', 'success');
+            document.getElementById('faculty_username').value = '';
+            document.getElementById('faculty_password').value = '';
+            refreshAll();
+        } else {
+            showMsg('faculty_msg', data.error || 'Failed to create faculty', 'danger');
+        }
+    } catch (e) {
+        showMsg('faculty_msg', 'Server error occurred', 'danger');
+    }
+}
+
+// Create Event
+async function createEvent() {
+    const title = document.getElementById('event_title').value.trim();
+    const date = document.getElementById('event_date').value;
+
+    if (!title || !date) {
+        showMsg('event_msg', 'Event title and date are required', 'danger');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, date, description: '' })
+        });
+        const data = await res.json();
+
+        showMsg('event_msg', 'Event created successfully!', 'success');
+        loadEvents();
+    } catch (e) {
+        showMsg('event_msg', 'Failed to create event', 'danger');
+    }
+}
+
+// Create Charity
+async function createCharity() {
+    const name = document.getElementById('charity_name').value.trim();
+    if (!name) {
+        showMsg('charity_msg', 'Charity name is required', 'danger');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/charities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description: '' })
+        });
+        const data = await res.json();
+
+        showMsg('charity_msg', 'Charity added successfully!', 'success');
+        document.getElementById('charity_name').value = '';
+        loadCharities();
+    } catch (e) {
+        showMsg('charity_msg', 'Failed to add charity', 'danger');
+    }
+}
+
+// Load Events
+async function loadEvents() {
+    try {
+        const res = await fetch('/api/events');
+        const events = await res.json();
+
+        const tbody = document.querySelector('#events_table tbody');
+        tbody.innerHTML = '';
+
+        events.forEach(event => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${event.title}</strong></td>
+                <td>${event.date}</td>
+                <td>${event.organizer || 'Admin'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent(${event.id})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('stat_events').textContent = events.length;
+    } catch (e) {
+        console.error("Error loading events:", e);
+    }
+}
+
+// Load Charities
+async function loadCharities() {
+    try {
+        const res = await fetch('/api/charities');
+        const charities = await res.json();
+
+        let html = '';
+        charities.forEach(c => {
+            html += `
+                <div class="d-flex justify-content-between align-items-center p-3 border rounded mb-2 bg-white">
+                    <div>
+                        <strong>${c.name}</strong><br>
+                        <small class="text-success">Raised: ₹${Number(c.amount_raised || 0).toLocaleString('en-IN')}</small>
+                    </div>
+                </div>`;
+        });
+
+        document.getElementById('charities_list').innerHTML = html || 
+            '<p class="text-muted text-center py-4">No charities added yet.</p>';
+    } catch (e) {
+        console.error("Error loading charities:", e);
+    }
+}
+
+
+
+
+// Delete Event (Basic implementation)
+async function deleteEvent(id) {
+    if (!confirm("Delete this event?")) return;
+    // Add DELETE route in app.py later
+    alert("Event deleted (backend route needed)");
+    loadEvents();
+}
+
+// Refresh all data
+function refreshAll() {
+    loadEvents();
+    loadCharities();
+}
+
+// Initialize dashboard when page loads
+window.onload = function() {
+    refreshAll();
+};
+</script>
+{% endblock %}

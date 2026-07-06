@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard - ICEMS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .dashboard-card {
+        transition: all 0.3s ease;
+        border: none;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+    }
+    .section-header {
+        font-weight: 600;
+    }
+    .therapy-reply {
+        background: #f0f8ff;
+        padding: 12px;
+        border-radius: 8px;
+        border-left: 5px solid #17a2b8;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="h2 fw-bold">Student Dashboard</h1>
+            <p class="text-muted">Welcome, <strong>{{ session.username }}</strong></p>
+        </div>
+        <a href="/logout" class="btn btn-outline-danger">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+    </div>
+
+    <!-- Global Message -->
+    <div id="global_msg"></div>
+
+    <div class="row g-4">
+
+        <!-- Events -->
+        <div class="col-lg-6">
+            <div class="card dashboard-card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0 section-header">Upcoming Events</h5>
+                </div>
+                <div class="card-body">
+                    <ul id="events_list" class="list-group"></ul>
+                    <p id="no_events" class="text-muted text-center d-none">No events available</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="col-lg-6">
+            <div class="card dashboard-card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0 section-header">Shared Notes</h5>
+                </div>
+                <div class="card-body">
+                    <ul id="notes_list" class="list-group"></ul>
+                    <p id="no_notes" class="text-muted text-center d-none">No notes yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doubts -->
+        <div class="col-12">
+            <div class="card dashboard-card shadow">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0 section-header">Ask a Doubt</h5>
+                </div>
+                <div class="card-body">
+                    <textarea id="new_question" class="form-control mb-3"></textarea>
+                    <button onclick="askDoubt()" class="btn btn-warning">Submit</button>
+
+                    <div id="doubts_list" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Therapy -->
+        <div class="col-lg-6">
+            <div class="card dashboard-card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5>Anonymous Therapy</h5>
+                </div>
+                <div class="card-body">
+                    <textarea id="therapy_message" class="form-control mb-3"></textarea>
+                    <button onclick="sendTherapy()" class="btn btn-info">Send</button>
+                    <div id="therapy_response"></div>
+                    <div id="therapy_list" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charity -->
+        <div class="col-lg-6">
+            <div class="card dashboard-card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5>Charity Fundraising</h5>
+                </div>
+                <div id="charities_container" class="card-body"></div>
+            </div>
+        </div>
+
+        <!-- Academics -->
+        <div class="col-12">
+            <div class="card dashboard-card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5>Academic Progress</h5>
+                </div>
+                <div id="academics_list" class="row g-3 card-body"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+// ================= GLOBAL MESSAGE =================
+function showMsg(message, type="info") {
+    document.getElementById('global_msg').innerHTML =
+        `<div class="alert alert-${type}">${message}</div>`;
+}
+
+// ================= EVENTS =================
+async function loadEvents() {
+    const res = await fetch('/api/events');
+    const events = await res.json();
+
+    const list = document.getElementById('events_list');
+    list.innerHTML = '';
+
+    if (!events.length) {
+        no_events.classList.remove('d-none');
+        return;
+    }
+
+    events.forEach(e => {
+        list.innerHTML += `
+        <li class="list-group-item d-flex justify-content-between">
+            <div>
+                <strong>${e.title}</strong><br>
+                <small>${e.date}</small>
+            </div>
+            <span class="badge bg-primary">Upcoming</span>
+        </li>`;
+    });
+}
+
+// ================= NOTES =================
+async function loadNotes() {
+    const res = await fetch('/api/notes');
+    const notes = await res.json();
+
+    const list = document.getElementById('notes_list');
+    list.innerHTML = '';
+
+    if (!notes.length) {
+        no_notes.classList.remove('d-none');
+        return;
+    }
+
+    notes.forEach(n => {
+        list.innerHTML += `<li class="list-group-item">${n.title}</li>`;
+    });
+}
+
+// ================= DOUBTS =================
+async function askDoubt() {
+    const q = new_question.value.trim();
+    if (!q) return showMsg("Enter doubt", "danger");
+
+    const res = await fetch('/api/student/doubts', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({question:q})
+    });
+
+    const data = await res.json();
+    if (data.success) {
+        showMsg("Doubt submitted","success");
+        new_question.value='';
+        loadDoubts();
+    }
+}
+
+async function loadDoubts() {
+    const res = await fetch('/api/student/doubts');
+    const doubts = await res.json();
+
+    doubts_list.innerHTML = doubts.map(d=>`
+        <div class="border p-2 mb-2">
+            <b>Q:</b> ${d.question}<br>
+            <b>A:</b> ${d.answer || 'Waiting...'}
+        </div>
+    `).join('');
+}
+
+// ================= THERAPY =================
+async function sendTherapy() {
+    const msg = therapy_message.value.trim();
+    if (!msg) return;
+
+    therapy_response.innerHTML = "Thinking...";
+
+    try {
+        const res = await fetch('/api/therapy/send',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({message:msg})
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            therapy_response.innerHTML = '';
+            return showMsg(data.error || 'Therapy request failed', 'danger');
+        }
+
+        const meta = data.ai_source === 'anthropic'
+            ? '<small class="text-success d-block mt-2">AI response generated from Anthropic API.</small>'
+            : `<small class="text-warning d-block mt-2">Fallback response used${data.ai_reason ? `: ${data.ai_reason}` : ''}.</small>`;
+
+        therapy_response.innerHTML =
+            `<div class="therapy-reply">${data.ai_response}${meta}</div>`;
+
+        therapy_message.value='';
+        loadTherapyHistory();
+    } catch (e) {
+        therapy_response.innerHTML = '';
+        showMsg('Unable to reach therapy service', 'danger');
+    }
+}
+
+async function loadTherapyHistory() {
+    const res = await fetch('/api/therapy/history');
+    const data = await res.json();
+
+    therapy_list.innerHTML = data.map(t=>`
+        <div class="list-group-item">
+            ${t.student_message}<br>
+            <small>${t.ai_response}</small>
+        </div>
+    `).join('');
+}
+
+// ================= CHARITY =================
+async function loadCharities() {
+    const res = await fetch('/api/fundraising/active');
+    const data = await res.json();
+
+    charities_container.innerHTML = data.map(c=>`
+        <div class="mb-3 border p-2">
+            <b>${c.event_title}</b><br>
+            ₹${c.current_amount}
+            <input type="number" id="amt_${c.fundraising_id}" class="form-control my-1">
+            <button onclick="donate(${c.fundraising_id})" class="btn btn-sm btn-danger">Donate</button>
+        </div>
+    `).join('');
+}
+
+async function donate(id){
+    const amt = document.getElementById(`amt_${id}`).value;
+
+    const res = await fetch('/api/student/donate',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({fundraising_id:id, amount:amt})
+    });
+
+    const data = await res.json();
+    showMsg(data.message || "Done","success");
+    loadCharities();
+}
+
+// ================= ACADEMICS =================
+async function loadAcademics(){
+    const res = await fetch('/api/student/attendance/summary');
+    const data = await res.json();
+
+    academics_list.innerHTML = data.map(s=>`
+        <div class="col-md-4">
+            <div class="border p-3 text-center">
+                <b>${s.subject}</b><br>
+                ${s.attendance_percentage}%
+            </div>
+        </div>
+    `).join('');
+}
+
+// INIT
+window.onload = () => {
+    loadEvents();
+    loadNotes();
+    loadDoubts();
+    loadTherapyHistory();
+    loadCharities();
+    loadAcademics();
+};
+
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html ng-app="icemsApp">
+<head>
+    <title>ICEMS Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script>
+        angular.module('icemsApp', [])
+        .controller('LoginCtrl', function($scope, $http, $window) {
+            $scope.login = function() {
+                // Form submission handled by HTML form, but you can add Angular logic if needed
+            };
+        });
+    </script>
+</head>
+<body ng-controller="LoginCtrl">
+    <div class="container">
+        <h1>Integrated College Event Management System</h1>
+        <form action="/" method="POST">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+    </div>
+</body>
+</html>

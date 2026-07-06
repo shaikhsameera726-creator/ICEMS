@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Therapy Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 2em auto; padding: 1em; }
+        #therapy_chat { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 1em; background: #f9f9f9; }
+        p { margin: 0.5em 0; }
+        #therapy_input { width: 80%; padding: 0.5em; font-size: 1em; }
+        #therapy_send_btn { padding: 0.5em 1em; font-size: 1em; }
+    </style>
+</head>
+<body>
+    <h2>Anonymous AI Therapy Chat</h2>
+    <div id="therapy_chat"></div>
+    <input id="therapy_input" type="text" placeholder="Type your message..." autocomplete="off" />
+    <button id="therapy_send_btn">Send</button>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('therapy_input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage("You: " + message);
+            input.value = '';
+
+            const tempMsg = appendMessage("AI: Just thinking...");
+
+            try {
+                const response = await fetch('/api/therapy/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message})
+                });
+
+                const data = await response.json();
+
+                if (data.ai_response) {
+                    tempMsg.innerText = "AI: " + data.ai_response;
+                } else {
+                    tempMsg.innerText = "AI: Sorry, something went wrong.";
+                }
+            } catch (error) {
+                tempMsg.innerText = "AI: Could not connect to server.";
+                console.error(error);
+            }
+        }
+
+        function appendMessage(text) {
+            const chat = document.getElementById('therapy_chat');
+            const p = document.createElement('p');
+            p.innerText = text;
+            chat.appendChild(p);
+            chat.scrollTop = chat.scrollHeight;
+            return p;
+        }
+
+        document.getElementById('therapy_send_btn').addEventListener('click', sendMessage);
+
+        // Optional: send message on Enter key
+        document.getElementById('therapy_input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
