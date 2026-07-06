@@ -830,44 +830,16 @@ def student_attendance_summary():
     return jsonify([dict(row) for row in rows])
 
 
-if __name__ == "__main__":
+iif __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     debug_mode = os.environ.get("FLASK_DEBUG", "").strip() == "1"
-    app.run(debug=debug_mode, use_reloader=False)
 
-def insert_dummy_data():
-    conn = get_db_connection()
-    c = conn.cursor()
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=debug_mode,
+        use_reloader=False
+    )
 
-    # Check if already inserted
-    existing = c.execute("SELECT COUNT(*) FROM events").fetchone()[0]
-    if existing > 0:
-        conn.close()
-        return  # STOP if data already exists
 
-    # Insert event
-    c.execute("""
-        INSERT INTO events (title, description, date, organizer)
-        VALUES (?, ?, ?, ?)
-    """, ("Flood Relief", "Help people affected by floods", "2026-05-01", "Admin"))
-
-    event_id = c.lastrowid
-
-    # Insert fundraising
-    c.execute("""
-        INSERT INTO event_fundraising (event_id, target_amount, current_amount)
-        VALUES (?, ?, ?)
-    """, (event_id, 10000, 2500))
-
-    # Insert attendance
-    c.execute("""
-        INSERT INTO attendance (student_id, student_username, subject, date, status, marked_by)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (1, "student1", "DBMS", "2026-04-10", "present", "faculty1"))
-
-    c.execute("""
-        INSERT INTO attendance (student_id, student_username, subject, date, status, marked_by)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (1, "student1", "Java", "2026-04-10", "present", "faculty1"))
-
-    conn.commit()
-    conn.close()
+    
