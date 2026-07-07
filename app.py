@@ -830,7 +830,7 @@ def student_attendance_summary():
     return jsonify([dict(row) for row in rows])
 
 
-iif __name__ == "__main__":
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug_mode = os.environ.get("FLASK_DEBUG", "").strip() == "1"
 
@@ -840,6 +840,3 @@ iif __name__ == "__main__":
         debug=debug_mode,
         use_reloader=False
     )
-
-
-    
